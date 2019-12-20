@@ -55,6 +55,7 @@ while True:
             motorR.stop()
             # Turn 90 degrees until there is enough space to start running again:
             # TODO Qui forse si potrebbe utilizzare la funzione drive(speed, steering) per girare il robot (vedi pag. 38)
+<<<<<<< HEAD
             death = 4
             while ultrasonic.distance() < minDistance:
                 motorL.run_angle(steeringSpeed, -174, Stop.COAST, False)  # TODO Controllare che i motori siano nell'ordine giusto
@@ -63,6 +64,11 @@ while True:
                 if(death == 0):
                     started = False
                     break
+=======
+            while ultrasonic.distance() < minDistance:
+                motorL.run_angle(steeringSpeed, -174, Stop.COAST, False)  # TODO Controllare che i motori siano nell'ordine giusto
+                motorR.run_angle(steeringSpeed, +174)
+>>>>>>> bf1a73702abeaa05df246b8852bfd5f7aee0c25a
             # Run the motors up to 'motorSpeed' degrees per second:
             motorL.run(motorSpeed)
             motorR.run(motorSpeed)
