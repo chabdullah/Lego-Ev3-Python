@@ -52,23 +52,15 @@ while True:
         motor.on(SpeedPercent(motorSpeed),SpeedPercent(motorSpeed))
 
     while started is True:
-        stopFunction(motor,button,started)
         if ultrasonic.distance_centimeters < minDistance:
             motor.off()  # Stop motors
             death = 4
-            stopFunction(motor,button,started)
             while ultrasonic.distance_centimeters < minDistance:
-                stopFunction(motor,button,started)
                 steer.on_for_rotations(steeringValue, steeringSpeed, steeringDegrees)
                 death -= 1
-                stopFunction(motor,button,started)
                 if(death == 0):
                     started = False
                     break
-                stopFunction(motor,button,started)
             # Run the motors up to 'motorSpeed' degrees per second:
             if death != 0:
                 motor.on(SpeedPercent(motorSpeed),SpeedPercent(motorSpeed))
-                stopFunction(motor,button,started)
-
-        stopFunction(motor,button,started)
