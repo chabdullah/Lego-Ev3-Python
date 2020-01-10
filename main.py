@@ -7,6 +7,11 @@ from ev3dev2.button import Button
 from ev3dev2.led import Leds
 from time import sleep
 
+def stopFunction(motor,button,started):
+    if button.any():
+        motor.off()
+        started = False
+
 # INITIALIZATION
 
 # Brick LED is red during initialization
@@ -47,26 +52,23 @@ while True:
         motor.on(SpeedPercent(motorSpeed),SpeedPercent(motorSpeed))
 
     while started is True:
+        stopFunction(motor,button,started)
         if ultrasonic.distance_centimeters < minDistance:
             motor.off()  # Stop motors
             death = 4
+            stopFunction(motor,button,started)
             while ultrasonic.distance_centimeters < minDistance:
+                stopFunction(motor,button,started)
                 steer.on_for_rotations(steeringValue, steeringSpeed, steeringDegrees)
                 death -= 1
+                stopFunction(motor,button,started)
                 if(death == 0):
                     started = False
                     break
+                stopFunction(motor,button,started)
             # Run the motors up to 'motorSpeed' degrees per second:
-            motorL.run(motorSpeed)
-            motorR.run(motorSpeed)
+            if death != 0:
+                motor.on(SpeedPercent(motorSpeed),SpeedPercent(motorSpeed))
+                stopFunction(motor,button,started)
 
-        # If a button is pressed while the brick is running, stop the motors and set 'started' to False (thus exiting the loop and waiting for the next button press)
-        if any(brick.buttons()):
-            # Stop the motors:
-            motorL.stop()
-            motorR.stop()
-            started = False
-
-
-# TODO (actually a silly idea) Se mai implementeremo una funzione di retromarcia, sarà mandatorio metterci il 'beep beep' (tipo quello dei camion in retromarcia, per capirsi)
-# Prova di versionamento
+        stopFunction(motor,button,started)
