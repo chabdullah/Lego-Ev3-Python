@@ -57,9 +57,16 @@ while True:
                     started = False
                     break
             # Run the motors up to 'motorSpeed' degrees per second:
-            if death != 0:
-                motor.on(SpeedPercent(motorSpeed),SpeedPercent(motorSpeed))
-        
-        if button.any():
-            motor.off()
+            motorL.run(motorSpeed)
+            motorR.run(motorSpeed)
+
+        # If a button is pressed while the brick is running, stop the motors and set 'started' to False (thus exiting the loop and waiting for the next button press)
+        if any(brick.buttons()):
+            # Stop the motors:
+            motorL.stop()
+            motorR.stop()
             started = False
+
+
+# TODO (actually a silly idea) Se mai implementeremo una funzione di retromarcia, sarà mandatorio metterci il 'beep beep' (tipo quello dei camion in retromarcia, per capirsi)
+# Prova di versionamento
