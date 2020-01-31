@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 venv/
+gamepad.py
+combo.py
+ssh.py
