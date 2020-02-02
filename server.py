@@ -1,96 +1,143 @@
-import socketserver
-from ev3dev.ev3 import *
-from ev3dev2.motor import LargeMotor, OUTPUT_A, OUTPUT_D, MoveSteering
-from ev3dev2.sensor.lego import TouchSensor, UltrasonicSensor
+#!/usr/bin/env python3
+from ev3dev2.motor import OUTPUT_A, OUTPUT_D, MoveSteering
+from ev3dev2.motor import SpeedPercent, MoveTank
+from ev3dev2.sensor.lego import UltrasonicSensor
+from ev3dev2.led import Leds
+import socketserver as socket
 
+# TCP HANDLER - It is instantiated once per connection to the server
+class TCPHandler(socket.BaseRequestHandler): 
+    # TODO Flag to be used as manual start/stop switch; default is False (brick does not move)
+    started = False
 
-class MyTCPHandler(socketserver.BaseRequestHandler):
-    """
-    The request handler class for our server.
-
-    It is instantiated once per connection to the server, and must
-    override the handle() method to implement communication to the
-    client.
-    """
-    
-
+    # FUNCTION DEFINITIONS
     def forward(self):
-        motor_left.run_forever(speed_sp=450)
-        motor_right.run_forever(speed_sp=450)
+        started = True  # TODO Delete this?
+        leds.set_color('LEFT','GREEN')
+        leds.set_color('RIGHT','GREEN')
+        motor.on(SpeedPercent(motorSpeed),SpeedPercent(motorSpeed))
 
     def backward(self):
-        motor_left.run_forever(speed_sp=-450)
-        motor_right.run_forever(speed_sp=-450)
+        started = True  # TODO Delete this?
+        leds.set_color('LEFT','GREEN')
+        leds.set_color('RIGHT','GREEN')
+        motor.on(SpeedPercent(-motorSpeed),SpeedPercent(-motorSpeed))
 
     def stop(self):
-        motor_left.run_forever(speed_sp=0)
-        motor_right.run_forever(speed_sp=0)
+        leds.set_color('LEFT','YELLOW')
+        leds.set_color('RIGHT','YELLOW')
+        motor.off()  # Stop motors
 
     def turn_right(self):
+        leds.set_color('LEFT','GREEN')
+        leds.set_color('RIGHT','GREEN'
         steer.on_for_rotations(-steeringValue, steeringSpeed, steeringDegrees)
 
     def turn_left(self):
+        leds.set_color('LEFT','GREEN')
+        leds.set_color('RIGHT','GREEN'
         steer.on_for_rotations(steeringValue, steeringSpeed, steeringDegrees)
 
+    def speed_up(self):
+        if motorSpeed <= 90:
+            motorSpeed += 10
+        else:
+            print('Maximum motor speed reached.')
+        print(motorSpeed)
+
+    def speed_down(self):
+        if motorSpeed >= 20:
+            motorSpeed -= 10
+        else:
+            print('Minimum motor speed reached.')
+        print(motorSpeed)
+
+    # TODO Understand what this function does and properly comment it
     def handle(self):
         # self.request is the TCP socket connected to the client
         self.data = self.request.recv(1024).strip()
         #print("{} wrote:".format(self.client_address[0])) # specifica ip
         self.code, self.state = self.data.decode('utf-8').split(',')
 
+    motorSpeed = 30  # Default motor speed (%)
+
+    # CONTROLS
+    # A button: accelerate
+    # B button: reverse
+    # D-pad right button: turn right
+    # D-pad left button: turn left
+    # D-pad up button: speed up (+10%)
+    # D-pad down button: speed down (-10%)
+
         if (self.code == 'BTN_SOUTH') and (self.state == '1'):
             print('A button pressed')
             self.forward()
-            """ while True:
-                print('sono nel ciclo')
-                if ultrasonic.distance_centimeters < minDistance:
-                    print('oh no un ostacolo!')
-                    self.stop()  # Stop motors
-                if (self.code == 'BTN_SOUTH') and (self.state == '0'):
-                    print('riparto')
-                    break """
         if (self.code == 'BTN_SOUTH') and (self.state == '0'):
             print('A button released')
             self.stop()
+
         if (self.code == 'BTN_EAST') and (self.state == '1'):
             print('B button pressed')
             self.backward()
         if (self.code == 'BTN_EAST') and (self.state == '0'):
             print('B button released')
             self.stop()
+
         if (self.code == 'ABS_HAT0X') and (self.state == '1'):
-            print('Right button pressed')
+            print('D-pad right button pressed')
             self.turn_right()
+
         if (self.code == 'ABS_HAT0X') and (self.state == '-1'):
-            print('Left button pressed')
+            print('D-pad left button pressed')
             self.turn_left()
-        # if (self.code == 'BTN_SELECT') and (self.state == '1'):
-        #    print('SELECT button pressed')
-        #    self.stop()
+
+        if (self.code == 'ABS_HAT0Y') and (self.state == '1'):
+            print('D-pad up button pressed')
+            self.speed_up()
+
+        if (self.code == 'ABS_HAT0Y') and (self.state == '-1'):
+            print('D-pad down button pressed')
+            self.speed_down()
+
+        # TODO Again, understand what this does and properly comment it
         # just send back the same data, but upper-cased
         self.request.sendall(self.data.upper())
 
+
+
+
+
 if __name__ == "__main__":
-    motor_left = LargeMotor('outD')
-    motor_right = LargeMotor('outA')
+    
+    # BRICK INITIALIZATION
+    # Brick LEDs
+    leds = Leds()
+
+    # Ultrasonic sensor
+    ultrasonic = UltrasonicSensor()
+
+    # Drive using two motors
+    motor = MoveTank(OUTPUT_A, OUTPUT_D)
     steer = MoveSteering(OUTPUT_A, OUTPUT_D)
 
     # Parameters
-    motorSpeed = 30  # Motor speed (%)
+    motorSpeed = 30  # Default motor speed (%)
     steeringValue = -100  # Steering value (to be used when turning around); goes from -100 to 100
     steeringSpeed = 30
-    steeringDegrees = 0.5
+    steeringDegrees = 0.5  # TODO Find the right value for 90 degrees steering
     minDistance = 20  # Minimum distance (in cm) before the brick starts decelerating or stops to turn around
-    # _maxSpeed = 400
 
-    ultrasonic = UltrasonicSensor()
+    # TODO Flag to be used as manual start/stop switch; default is False (brick does not move)
+    started = False
 
+    
+    # SERVER SETTINGS & CREATION
+    host = '192.168.43.219'
+    port = 9999
 
-    HOST, PORT = "192.168.43.219", 9999
+    server = socket.TCPServer((host, port), TCPHandler)  # Creates the server, binding to the specified host and port
 
-    # Create the server, binding to localhost on port 9999
-    server = socketserver.TCPServer((HOST, PORT), MyTCPHandler)
-
-    # Activate the server; this will keep running until you
-    # interrupt the program with Ctrl-C
-    server.serve_forever()
+    try:
+        server.serve_forever()  # Activates the server, which will keep running until the user stops the program with Ctrl+C (KeyboardInterrupt exception)
+    except KeyboardInterrupt:
+        print('\n Stopped by user. Data is not being received anymore.')

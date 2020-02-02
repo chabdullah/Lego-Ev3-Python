@@ -7,11 +7,6 @@ from ev3dev2.button import Button
 from ev3dev2.led import Leds
 from time import sleep
 
-def stopFunction(motor,button,started):
-    if button.any():
-        motor.off()
-        started = False
-
 # INITIALIZATION
 
 # Brick LED is red during initialization
