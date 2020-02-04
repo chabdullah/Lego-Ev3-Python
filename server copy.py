@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import division
 #from ev3dev2.motor import OUTPUT_A, OUTPUT_D, MoveSteering
 #from ev3dev2.motor import SpeedPercent, MoveTank
 #from ev3dev2.sensor.lego import UltrasonicSensor
@@ -18,23 +19,21 @@ class TCPHandler(socket.BaseRequestHandler):
 
     # FUNCTION DEFINITIONS
     def forward(self, s):
-        print('forward')
+        #print('forward')
         global motorSpeed
-        print('prima di incrementare: ', motorSpeed)  # TODO DELETE
-        if motorSpeed <= 100:
-            # TODO Funzione di normalizzazione della velocità in base a s (il valore preso dalla levetta analogica)
-            motorSpeed += 10
-            print(motorSpeed)
+        #motorSpeed = float(motorSpeed)
+        #print('prima di incrementare: ', motorSpeed)  # TODO DELETE
+        if (s >= -386) and (s <= 128):
+            self.stop()
+        elif s == 32767:
+            motorSpeed = -100.0
+            print('max back: ',motorSpeed)
         else:
-            print('Maximum motor speed reached.')
-        if motorSpeed > 100:
-            motorSpeed = 100
+            # TODO Funzione di normalizzazione della velocità in base a s (il valore preso dalla levetta analogica)
+            motorSpeed = ((-s)/32768.0)*100.0
+            print(motorSpeed)
         #print('dopo aver incrementato: ', motorSpeed)  # TODO DELETE
         # motor.on(SpeedPercent(motorSpeed),SpeedPercent(motorSpeed))
-
-    def backward(self, s):
-        print('backward')
-        return
 
     def forward_var(self):
         started = True  # TODO Delete this?
@@ -53,20 +52,20 @@ class TCPHandler(socket.BaseRequestHandler):
     def stop(self):
         #leds.set_color('LEFT','YELLOW')
         #leds.set_color('RIGHT','YELLOW')
-        print('leds are yellow')
+        #print('leds are yellow')
         print('stop')
 
-    def right(self, s):
-        #leds.set_color('LEFT','GREEN')
-        #leds.set_color('RIGHT','GREEN')
-        print('leds are green')
-        print('turn right')
-
-    def left(self, s):
-        #leds.set_color('LEFT','GREEN')
-        #leds.set_color('RIGHT','GREEN')
-        print('leds are green')
-        print('turn left')
+    def turn(self, s):
+        global motorSpeed
+        if (s >= -129) and (s <= 385):
+            self.stop()
+        elif s == 32767:
+            motorSpeed = 100.0
+            print(motorSpeed)
+        else:
+            # TODO Funzione di normalizzazione della velocità in base a s (il valore preso dalla levetta analogica)
+            motorSpeed = ((s)/32768.0)*100.0
+            print(motorSpeed)
 
     def right_var(self):
         #leds.set_color('LEFT','GREEN')
@@ -142,26 +141,17 @@ class TCPHandler(socket.BaseRequestHandler):
             self.speed_down()
 
         # ABS_Y a riposo: -129
-        # ABS_Y in su: segno negativo (valore massimo: -32678)
+        # ABS_Y in su: segno negativo (valore massimo: -32768)
         # ABS_Y in basso: segno positivo (valore massimo: 32767)
-        if (self.code == 'ABS_Y') and (float(self.state) < float('-129')):
-            print('Left analog stick moved up')
+        if (self.code == 'ABS_Y'):
+            #print('Left analog stick moved up')
             #print(self.state)
             self.forward(float(self.state))
 
-        if (self.code == 'ABS_Y') and (float(self.state) > float('-129')):
-            print('Left analog stick moved down')
-            self.backward(float(self.state))
-
-        if (self.code == 'ABS_X') and (float(self.state) > float('128')):
-            print('Left analog stick moved right')
-            print(self.state)
-            self.right(float(self.state))
-
-        if (self.code == 'ABS_X') and (float(self.state) < float('128')):
-            print('Left analog stick moved left')
-            print(self.state)
-            self.left(float(self.state))
+        if (self.code == 'ABS_X'):
+            #print('Left analog stick moved right')
+            #print(self.state)
+            self.turn(float(self.state))
 
         # TODO Again, understand what this does and properly comment it
         # just send back the same data, but upper-cased
@@ -193,8 +183,8 @@ if __name__ == "__main__":
 
     
     # SERVER SETTINGS & CREATION
-    host = '192.168.1.5'
-    port = 9999
+    host = '192.168.43.43'
+    port = 9998
 
     server = socket.TCPServer((host, port), TCPHandler)  # Creates the server, binding to the specified host and port
 

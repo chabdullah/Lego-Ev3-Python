@@ -1,14 +1,14 @@
 import socket
 import sys
-
+from time import sleep
 from ev3dev.ev3 import *
 from inputs import get_gamepad
 
 
 #Connect to server
-HOST, PORT = "192.168.1.5", 9999
+HOST, PORT = "192.168.43.43", 9998
 
-
+sleep(0.05)
 while True:
     events = get_gamepad()
     #print(events)
