@@ -2,11 +2,11 @@
 from __future__ import division
 from ev3dev2.motor import OUTPUT_A, OUTPUT_D, MoveSteering
 from ev3dev2.motor import SpeedPercent, MoveTank, Motor
-#from ev3dev2.sensor.lego import UltrasonicSensor
+from ev3dev2.sensor.lego import UltrasonicSensor
 from ev3dev2.led import Leds
 import socketserver as socket
 from threading import Thread
-from time import sleep
+from time import sleep, time
 
 # TODO Ripulire codice da commenti
 # TODO Dividere questo file in due/tre classi (una per definire i controlli, una per il server)
@@ -27,51 +27,35 @@ class TCPHandler(socket.BaseRequestHandler):
         percent = 5
         self.leds_green()
         #print('questo è s: ',s)
-        print('x: ', speed_x, 'y: ', speed_y)
+        #print('x: ', speed_x, 'y: ', speed_y)
         if axis == 'ABS_Y':
-            if (s >= -386) and (s <= 128):  # -386/+128
-                #print('ciao')
-                #print(speed_y)
+            if (s >= -386) and (s <= 128):
                 self.stop()
-                #print('dopo lo stop: ',speed_y)
-            elif s == 32767:
-                speed_y = -100.0
-                if speed_x > percent:
-                    motor.on(SpeedPercent(speed_y),SpeedPercent(speed_x))
-                elif speed_x < -percent:
-                    motor.on(SpeedPercent(speed_x),SpeedPercent(speed_y))
-                else:
-                    #print('max back: ',speed_y)
-                    motor.on(SpeedPercent(speed_y),SpeedPercent(speed_y))
             else:
-                speed_y = ((-s)/32768.0)*100.0
-                if speed_x > percent:
-                    motor.on(SpeedPercent(speed_y),SpeedPercent(speed_x))
-                elif speed_x < -percent:
-                    motor.on(SpeedPercent(speed_x),SpeedPercent(speed_y))
-                else:
+                speed_y = (-(s)/32768.0)*100.0
+                if -percent < speed_x < percent:
                     motor.on(SpeedPercent(speed_y),SpeedPercent(speed_y))
+                else:
+                    self.v = (100-abs(speed_x))*(speed_y/100)+speed_y
+                    self.w = (100-abs(speed_y))*(speed_x/100)+speed_x
+                    self.r = (self.v+self.w)/2
+                    self.l = (self.v-self.w)/2
+                    motor.on(SpeedPercent(self.l),SpeedPercent(self.r))
         else:  # velocità su X
-            if (s >= -129) and (s <= 385):  # -129/+385
-                #print('ciao')
-                #print(speed_y)
-                speed_x = 0.0
-                motor.on(SpeedPercent(speed_y),SpeedPercent(speed_y))
-                #self.stop()
-            elif s == 32767:
-                speed_x = 0.0
-                #print('max back: ',speed_y)
-                motor.on(SpeedPercent(speed_y),SpeedPercent(speed_x))
+            if (s >= -129) and (s <= 385):
+                print(s)
+                infoSpeedThread = SpeedInfoThread()
+                infoSpeedThread.start()
+                self.stop()
             else:
-                # TODO Funzione di normalizzazione della velocità in base a s (il valore preso dalla levetta analogica)
-                speed_x = ((abs(s))/32768.0)*100.0
-                speed_x = (speed_y/100.0)*speed_x
-                #print(speed_x)
-                if s > 385:
-                    motor.on(SpeedPercent(speed_y),SpeedPercent(speed_x))
-                elif s < -129:
-                    motor.on(SpeedPercent(speed_x),SpeedPercent(speed_y))
-
+                speed_x = (-(s)/32768.0)*100.0
+                self.v = (100-abs(speed_x))*(speed_y/100)+speed_y
+                self.w = (100-abs(speed_y))*(speed_x/100)+speed_x
+                self.r = (self.v+self.w)/2
+                self.l = (self.v-self.w)/2
+                motor.on(SpeedPercent(self.l),SpeedPercent(self.r))
+        
+        
     def forward_var(self):
         self.leds_green()
         motor.on(SpeedPercent(motorSpeed_var),SpeedPercent(motorSpeed_var))
@@ -134,6 +118,7 @@ class TCPHandler(socket.BaseRequestHandler):
 
     # TODO Understand what this function does and properly comment it
     def handle(self):
+        global reverse
         # self.request is the TCP socket connected to the client
         self.data = self.request.recv(1024).strip()
         #print("{} wrote:".format(self.client_address[0])) # specifica ip
@@ -158,10 +143,12 @@ class TCPHandler(socket.BaseRequestHandler):
 
         if (self.code == 'BTN_EAST') and (self.state == '1'):
             #print('B button pressed')
+            reverse = True
             self.backward_var()
         if (self.code == 'BTN_EAST') and (self.state == '0'):
             #print('B button released')
             self.stop()
+            reverse = False
 
         if (self.code == 'BTN_START') and (self.state == '1'):
             #print('START button pressed')
@@ -216,11 +203,12 @@ class UltrasonicThread (Thread):
 
     def run(self):
         global wall
+        global reverse
         period = 0.350
         while True:
             t = time()
             while True:
-                if ultrasonic.distance_centimeters < minDistance:
+                if ultrasonic.distance_centimeters < minDistance and not reverse:
                     self.stop()
                     wall = True
                 else:
@@ -242,9 +230,23 @@ class MotorInfoThread (Thread):
         global motor_info2
         while True:
             sleep(1)
-            print("A: ",motor_info.speed, " D: ",motor_info2.speed)
-            print("A: ",motor_info.position%360, " D: ",motor_info2.position%360)
-            print("_"*50)
+            print("A_speed: ",motor_info.speed, " D_speed: ",motor_info2.speed)
+            print("A_position: ",motor_info.position%360, " D_position: ",motor_info2.position%360)
+            print("*"*50)
+
+
+class SpeedInfoThread (Thread):
+    def __init__(self):
+        Thread.__init__(self)
+        print("Thread infoSpeed avviato")
+    
+    def run(self):
+        global speed_x
+        global speed_y
+
+        while True:
+            sleep(0.1)
+            print("Speed_x: ",speed_x ," Speed_y: ",speed_y)
 
 
 
@@ -271,6 +273,7 @@ if __name__ == "__main__":
     minDistance = 20  # Minimum distance (in cm) before the brick starts decelerating or stops to turn around
 
     wall = False
+    reverse = False
 
     
     # SERVER SETTINGS & CREATION
@@ -285,7 +288,7 @@ if __name__ == "__main__":
     ultrasonicThread = UltrasonicThread("Thread Ultrasonic")
     ultrasonicThread.start()
     motorInfoThread = MotorInfoThread("Thread MotorInfo")
-    motorInfoThread.start()
+    #motorInfoThread.start()
     server.serve_forever()  # Activates the server, which will keep running until the user stops the program with Ctrl+C (KeyboardInterrupt exception)
     #except KeyboardInterrupt:
     #    print('\n Stopped by user. Data is not being received anymore.')
