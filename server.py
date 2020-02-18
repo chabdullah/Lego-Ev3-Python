@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 from __future__ import division
 from ev3dev2.motor import OUTPUT_A, OUTPUT_D, MoveSteering
-from ev3dev2.motor import SpeedPercent, MoveTank
+from ev3dev2.motor import SpeedPercent, MoveTank, Motor
 #from ev3dev2.sensor.lego import UltrasonicSensor
 from ev3dev2.led import Leds
 import socketserver as socket
+from threading import Thread
+from time import sleep
 
 # TODO Ripulire codice da commenti
 # TODO Dividere questo file in due/tre classi (una per definire i controlli, una per il server)
@@ -201,6 +203,50 @@ class TCPHandler(socket.BaseRequestHandler):
 
 
 
+class UltrasonicThread (Thread):
+    def __init__(self, nome):
+        Thread.__init__(self)
+        self.nome = nome
+        print("Thread Ultrasonic avviato")
+
+    def stop(self):
+        #self.leds_orange()
+        motor.on(SpeedPercent(0),SpeedPercent(0))
+        motor.off() 
+
+    def run(self):
+        global wall
+        period = 0.350
+        while True:
+            t = time()
+            while True:
+                if ultrasonic.distance_centimeters < minDistance:
+                    self.stop()
+                    wall = True
+                else:
+                    wall = False
+                if time()-t >= period:
+                    break
+                else:
+                    sleep(period-(time() -t))
+
+
+class MotorInfoThread (Thread):
+    def __init__(self, nome):
+        Thread.__init__(self)
+        self.nome = nome
+        print("Thread MotorInfo avviato")
+    
+    def run(self):
+        global motor_info
+        global motor_info2
+        while True:
+            sleep(1)
+            print("A: ",motor_info.speed, " D: ",motor_info2.speed)
+            print("A: ",motor_info.position%360, " D: ",motor_info2.position%360)
+            print("_"*50)
+
+
 
 if __name__ == "__main__":
     
@@ -209,28 +255,37 @@ if __name__ == "__main__":
     leds = Leds()
 
     # Ultrasonic sensor
-    #ultrasonic = UltrasonicSensor()
+    ultrasonic = UltrasonicSensor()
 
     # Drive using two motors
     motor = MoveTank(OUTPUT_A, OUTPUT_D)
+    motor_info = Motor(OUTPUT_A)
+    motor_info2 = Motor(OUTPUT_D)
     steer = MoveSteering(OUTPUT_A, OUTPUT_D)
 
     # Parameters
-    #speed_y = 30  # Default motor speed (%)
+    motorSpeed = 30  # Default motor speed (%)
     steeringValue = -100  # Steering value (to be used when turning around); goes from -100 to 100
-    steeringSpeed = 30  # Steering speed (% between -100 and 100)
+    steeringSpeed = 30
     steeringDegrees = 0.554  # TODO Find the right value for 90 degrees steering
     minDistance = 20  # Minimum distance (in cm) before the brick starts decelerating or stops to turn around
+
+    wall = False
 
     
     # SERVER SETTINGS & CREATION
     host = '192.168.43.219'
     port = 12397
 
+    print("Inizializing server...")
     server = socket.TCPServer((host, port), TCPHandler)  # Creates the server, binding to the specified host and port
 
     #try:
     print("Ready")
+    ultrasonicThread = UltrasonicThread("Thread Ultrasonic")
+    ultrasonicThread.start()
+    motorInfoThread = MotorInfoThread("Thread MotorInfo")
+    motorInfoThread.start()
     server.serve_forever()  # Activates the server, which will keep running until the user stops the program with Ctrl+C (KeyboardInterrupt exception)
     #except KeyboardInterrupt:
     #    print('\n Stopped by user. Data is not being received anymore.')
