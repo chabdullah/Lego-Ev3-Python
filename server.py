@@ -7,6 +7,8 @@ from ev3dev2.led import Leds
 import socketserver as socket
 from threading import Thread
 from time import sleep, time
+from ev3dev2.sound import Sound
+import json
 
 # TODO Ripulire codice da commenti
 # TODO Dividere questo file in due/tre classi (una per definire i controlli, una per il server)
@@ -19,17 +21,24 @@ class TCPHandler(socket.BaseRequestHandler):
     speed_y = 0
     speed_x = 0
     motorSpeed_var = 30
+    global s_old
+    s_old = 0
 
     # FUNCTION DEFINITIONS
     def forward(self, s, axis):
         global speed_y
         global speed_x
+        global s_old
         percent = 5
         self.leds_green()
         #print('questo è s: ',s)
         #print('x: ', speed_x, 'y: ', speed_y)
         if axis == 'ABS_Y':
-            if (s >= -386) and (s <= 128):
+            if s > 0:
+                reverse = True
+            if s<0 and (s-s_old)>=1500:
+                self.stop()
+            elif s>0 and (s-s_old)<=-1500:
                 self.stop()
             else:
                 speed_y = (-(s)/32768.0)*100.0
@@ -42,10 +51,9 @@ class TCPHandler(socket.BaseRequestHandler):
                     self.l = (self.v-self.w)/2
                     motor.on(SpeedPercent(self.l),SpeedPercent(self.r))
         else:  # velocità su X
-            if (s >= -129) and (s <= 385):
-                print(s)
-                infoSpeedThread = SpeedInfoThread()
-                infoSpeedThread.start()
+            if s<0 and (s-s_old)>=500:
+                self.stop()
+            elif s>0 and (s-s_old)<=-500:
                 self.stop()
             else:
                 speed_x = (-(s)/32768.0)*100.0
@@ -54,6 +62,7 @@ class TCPHandler(socket.BaseRequestHandler):
                 self.r = (self.v+self.w)/2
                 self.l = (self.v-self.w)/2
                 motor.on(SpeedPercent(self.l),SpeedPercent(self.r))
+        s_old = s
         
         
     def forward_var(self):
@@ -65,9 +74,15 @@ class TCPHandler(socket.BaseRequestHandler):
         motor.on(SpeedPercent(-motorSpeed_var),SpeedPercent(-motorSpeed_var))
 
     def stop(self):
+        global speed_x
+        global speed_y
         self.leds_orange()
+        speed_x = 0
+        speed_y = 0
         motor.on(SpeedPercent(0),SpeedPercent(0))
         motor.off()  # Stop motors
+        #speedInfoThread = SpeedInfoThread()
+        #speedInfoThread.start()
 
     '''
     def turn(self, s):
@@ -115,6 +130,13 @@ class TCPHandler(socket.BaseRequestHandler):
         leds.set_color('LEFT','ORANGE')
         leds.set_color('RIGHT','ORANGE')
 
+    def send_log(self):
+        info = {"MotoreA": motor_speedA, "MotoreD": motor_speedD}
+        with open("./log.json", "w") as f:
+            json.dump(info,f)
+
+
+
 
     # TODO Understand what this function does and properly comment it
     def handle(self):
@@ -155,7 +177,7 @@ class TCPHandler(socket.BaseRequestHandler):
             self.stop()
 
         if (self.code == 'BTN_SELECT') and (self.state == '1'):
-            pass
+            self.send_log()
 
         if (self.code == 'ABS_HAT0X') and (self.state == '1'):
             #print('D-pad right button pressed')
@@ -219,20 +241,24 @@ class UltrasonicThread (Thread):
                     sleep(period-(time() -t))
 
 
-class MotorInfoThread (Thread):
+class LogThread (Thread):
     def __init__(self, nome):
         Thread.__init__(self)
         self.nome = nome
-        print("Thread MotorInfo avviato")
+        print("Thread LogInfo avviato")
     
     def run(self):
         global motor_info
         global motor_info2
+        global motor_speedA
+        global motor_speedD
         while True:
-            sleep(1)
-            print("A_speed: ",motor_info.speed, " D_speed: ",motor_info2.speed)
-            print("A_position: ",motor_info.position%360, " D_position: ",motor_info2.position%360)
-            print("*"*50)
+            sleep(.5)
+            motor_speedA.append(motor_infoA.speed)
+            motor_speedD.append(motor_infoD.speed)
+
+            
+            
 
 
 class SpeedInfoThread (Thread):
@@ -245,7 +271,7 @@ class SpeedInfoThread (Thread):
         global speed_y
 
         while True:
-            sleep(0.1)
+            sleep(0.5)
             print("Speed_x: ",speed_x ," Speed_y: ",speed_y)
 
 
@@ -261,8 +287,8 @@ if __name__ == "__main__":
 
     # Drive using two motors
     motor = MoveTank(OUTPUT_A, OUTPUT_D)
-    motor_info = Motor(OUTPUT_A)
-    motor_info2 = Motor(OUTPUT_D)
+    motor_infoA = Motor(OUTPUT_A)
+    motor_infoD = Motor(OUTPUT_D)
     steer = MoveSteering(OUTPUT_A, OUTPUT_D)
 
     # Parameters
@@ -275,6 +301,10 @@ if __name__ == "__main__":
     wall = False
     reverse = False
 
+    #Log info
+    motor_speedA = []
+    motor_speedD = []
+
     
     # SERVER SETTINGS & CREATION
     host = '192.168.43.219'
@@ -285,10 +315,12 @@ if __name__ == "__main__":
 
     #try:
     print("Ready")
+    readySound = Sound()
+    readySound.tone(1000,1)
     ultrasonicThread = UltrasonicThread("Thread Ultrasonic")
     ultrasonicThread.start()
-    motorInfoThread = MotorInfoThread("Thread MotorInfo")
-    #motorInfoThread.start()
+    logThread = LogThread("Thread Log")
+    logThread.start()
     server.serve_forever()  # Activates the server, which will keep running until the user stops the program with Ctrl+C (KeyboardInterrupt exception)
     #except KeyboardInterrupt:
     #    print('\n Stopped by user. Data is not being received anymore.')
