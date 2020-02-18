@@ -42,8 +42,8 @@ while True:
                     # Connect to server and send data
                     sock.connect((host, port))
                     sock.sendall(bytes(data, "utf-8"))
-                    count += 1
-                    print(count)
+                    #count += 1
+                    #print(count)
         elif (code == 'ABS_Y'):
             stick_values_Y.append(state)
             if len(stick_values_Y) == n_comandi:
@@ -53,8 +53,8 @@ while True:
                     # Connect to server and send data
                     sock.connect((host, port))
                     sock.sendall(bytes(data, "utf-8"))
-                    count += 1
-                    print(count)
+                    #count += 1
+                    #print(count)
             elif (len(stick_values_Y) < n_comandi) and (state >= -386) and (state <= 128):
                 data = 'ABS_Y' + ',' + str(state)
                 stick_values_Y = []
@@ -62,8 +62,8 @@ while True:
                     # Connect to server and send data
                     sock.connect((host, port))
                     sock.sendall(bytes(data, "utf-8"))
-                    count += 1
-                    print(count)
+                    #count += 1
+                    #print(count)
         else:
             data = str(code) + ',' + str(state)
             # Create a socket (SOCK_STREAM means a TCP socket)
@@ -71,8 +71,8 @@ while True:
                 # Connect to server and send data
                 sock.connect((host, port))
                 sock.sendall(bytes(data, "utf-8"))
-                count += 1
-                print(count)
+                #count += 1
+                #print(count)
                 
                 #code, state = data.split(',')
 

@@ -11,29 +11,64 @@ import socketserver as socket
 
 # TCP HANDLER - It is instantiated once per connection to the server
 class TCPHandler(socket.BaseRequestHandler): 
-    global motorSpeed
+    global speed_y
+    global speed_x
     global motorSpeed_var
-    motorSpeed = 30
+    speed_y = 0
+    speed_x = 0
     motorSpeed_var = 30
 
     # FUNCTION DEFINITIONS
-    def forward(self, s):
-        global motorSpeed
+    def forward(self, s, axis):
+        global speed_y
+        global speed_x
+        percent = 5
         self.leds_green()
-        print('questo è s: ',s)
-        if (s >= -386) and (s <= 128):  # -386/+128
-            print('ciao')
-            #print(motorSpeed)
-            self.stop()
-            print('dopo lo stop: ',motorSpeed)
-        elif s == 32767:
-            motorSpeed = -100.0
-            print('max back: ',motorSpeed)
-            motor.on(SpeedPercent(motorSpeed),SpeedPercent(motorSpeed))
-        else:
-            # TODO Funzione di normalizzazione della velocità in base a s (il valore preso dalla levetta analogica)
-            motorSpeed = ((-s)/32768.0)*100.0
-            motor.on(SpeedPercent(motorSpeed),SpeedPercent(motorSpeed))
+        #print('questo è s: ',s)
+        print('x: ', speed_x, 'y: ', speed_y)
+        if axis == 'ABS_Y':
+            if (s >= -386) and (s <= 128):  # -386/+128
+                #print('ciao')
+                #print(speed_y)
+                self.stop()
+                #print('dopo lo stop: ',speed_y)
+            elif s == 32767:
+                speed_y = -100.0
+                if speed_x > percent:
+                    motor.on(SpeedPercent(speed_y),SpeedPercent(speed_x))
+                elif speed_x < -percent:
+                    motor.on(SpeedPercent(speed_x),SpeedPercent(speed_y))
+                else:
+                    #print('max back: ',speed_y)
+                    motor.on(SpeedPercent(speed_y),SpeedPercent(speed_y))
+            else:
+                speed_y = ((-s)/32768.0)*100.0
+                if speed_x > percent:
+                    motor.on(SpeedPercent(speed_y),SpeedPercent(speed_x))
+                elif speed_x < -percent:
+                    motor.on(SpeedPercent(speed_x),SpeedPercent(speed_y))
+                else:
+                    motor.on(SpeedPercent(speed_y),SpeedPercent(speed_y))
+        else:  # velocità su X
+            if (s >= -129) and (s <= 385):  # -129/+385
+                #print('ciao')
+                #print(speed_y)
+                speed_x = 0.0
+                motor.on(SpeedPercent(speed_y),SpeedPercent(speed_y))
+                #self.stop()
+            elif s == 32767:
+                speed_x = 0.0
+                #print('max back: ',speed_y)
+                motor.on(SpeedPercent(speed_y),SpeedPercent(speed_x))
+            else:
+                # TODO Funzione di normalizzazione della velocità in base a s (il valore preso dalla levetta analogica)
+                speed_x = ((abs(s))/32768.0)*100.0
+                speed_x = (speed_y/100.0)*speed_x
+                #print(speed_x)
+                if s > 385:
+                    motor.on(SpeedPercent(speed_y),SpeedPercent(speed_x))
+                elif s < -129:
+                    motor.on(SpeedPercent(speed_x),SpeedPercent(speed_y))
 
     def forward_var(self):
         self.leds_green()
@@ -48,19 +83,21 @@ class TCPHandler(socket.BaseRequestHandler):
         motor.on(SpeedPercent(0),SpeedPercent(0))
         motor.off()  # Stop motors
 
+    '''
     def turn(self, s):
-        global motorSpeed
+        global speed_y
         self.leds_green()
         if (s >= -129) and (s <= 385):
             self.stop()
         elif s == 32767:
-            motorSpeed = 100.0
-            print(motorSpeed)
+            speed_y = 100.0
+            print(speed_y)
             motor.on(SpeedPercent(-motorSpeed_var),SpeedPercent(-motorSpeed_var))  # TODO
         else:
-            motorSpeed = ((s)/32768.0)*100.0
+            speed_y = ((s)/32768.0)*100.0
             motor.on(SpeedPercent(-motorSpeed_var),SpeedPercent(-motorSpeed_var)) # TODO
-            print(motorSpeed)
+            print(speed_y)
+    '''
 
     def right_var(self):
         self.leds_green()
@@ -100,7 +137,7 @@ class TCPHandler(socket.BaseRequestHandler):
         #print("{} wrote:".format(self.client_address[0])) # specifica ip
         self.code, self.state = self.data.decode('utf-8').split(',')
 
-        #motorSpeed = 30  # Default motor speed (%)
+        #speed_y = 30  # Default motor speed (%)
 
         # CONTROLS
         # A button: accelerate
@@ -111,51 +148,51 @@ class TCPHandler(socket.BaseRequestHandler):
         # D-pad down button: speed down (-10%)
 
         if (self.code == 'BTN_SOUTH') and (self.state == '1'):
-            print('A button pressed')
+            #print('A button pressed')
             self.forward_var()
         if (self.code == 'BTN_SOUTH') and (self.state == '0'):
-            print('A button released')
+            #print('A button released')
             self.stop()
 
         if (self.code == 'BTN_EAST') and (self.state == '1'):
-            print('B button pressed')
+            #print('B button pressed')
             self.backward_var()
         if (self.code == 'BTN_EAST') and (self.state == '0'):
-            print('B button released')
+            #print('B button released')
             self.stop()
 
         if (self.code == 'BTN_START') and (self.state == '1'):
-            print('START button pressed')
+            #print('START button pressed')
             self.stop()
 
         if (self.code == 'BTN_SELECT') and (self.state == '1'):
             pass
 
         if (self.code == 'ABS_HAT0X') and (self.state == '1'):
-            print('D-pad right button pressed')
+            #print('D-pad right button pressed')
             self.right_var()
 
         if (self.code == 'ABS_HAT0X') and (self.state == '-1'):
-            print('D-pad left button pressed')
+            #print('D-pad left button pressed')
             self.left_var()
 
         if (self.code == 'ABS_HAT0Y') and (self.state == '-1'):
-            print('D-pad up button pressed')
+            #print('D-pad up button pressed')
             self.speed_up()
 
         if (self.code == 'ABS_HAT0Y') and (self.state == '1'):
-            print('D-pad down button pressed')
+            #print('D-pad down button pressed')
             self.speed_down()
 
         if (self.code == 'ABS_Y'):
             #print('Left analog stick moved up')
             #print(self.state)
-            self.forward(float(self.state))
+            self.forward(float(self.state), 'ABS_Y')
 
         if (self.code == 'ABS_X'):
             #print('Left analog stick moved right')
             #print(self.state)
-            self.turn(float(self.state))
+            self.forward(float(self.state), 'ABS_X')
 
         # TODO Again, understand what this does and properly comment it
         # just send back the same data, but upper-cased
@@ -179,9 +216,9 @@ if __name__ == "__main__":
     steer = MoveSteering(OUTPUT_A, OUTPUT_D)
 
     # Parameters
-    motorSpeed = 30  # Default motor speed (%)
+    #speed_y = 30  # Default motor speed (%)
     steeringValue = -100  # Steering value (to be used when turning around); goes from -100 to 100
-    steeringSpeed = 30
+    steeringSpeed = 30  # Steering speed (% between -100 and 100)
     steeringDegrees = 0.554  # TODO Find the right value for 90 degrees steering
     minDistance = 20  # Minimum distance (in cm) before the brick starts decelerating or stops to turn around
 
