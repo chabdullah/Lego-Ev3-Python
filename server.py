@@ -1,38 +1,44 @@
 #!/usr/bin/env python3
-from __future__ import division
-from ev3dev2.motor import OUTPUT_A, OUTPUT_D, MoveSteering
-from ev3dev2.motor import SpeedPercent, MoveTank, Motor
-from ev3dev2.sensor.lego import UltrasonicSensor
-from ev3dev2.led import Leds
-import socketserver as socket
-from threading import Thread
-from time import sleep, time
-from ev3dev2.sound import Sound
-import json
+from threading import Thread  # Multi-threading
+import socketserver as socket  # Data transmission
+from __future__ import division  # Better divisions
+from time import sleep, time  # Sleeping (to avoid laggs) and timing
+import json  # JSON logging
+from pprint import pprint  # Pretty print, for readable JSON [debug purposes only]
 
-# TODO Ripulire codice da commenti
+ # LEGO MINDSTORMS EV3 ev3dev Python library
+from ev3dev2.led import Leds
+from ev3dev2.motor import Motor, MoveTank, MoveSteering, SpeedPercent, OUTPUT_A, OUTPUT_D
+from ev3dev2.sensor.lego import UltrasonicSensor
+from ev3dev2.sound import Sound
+
 # TODO Dividere questo file in due/tre classi (una per definire i controlli, una per il server)
 
 # TCP HANDLER - It is instantiated once per connection to the server
-class TCPHandler(socket.BaseRequestHandler): 
-    global speed_y
-    global speed_x
-    global motorSpeed_var
-    speed_y = 0
-    speed_x = 0
-    motorSpeed_var = 30
-    global s_old
-    s_old = 0
+class TCPHandler(socket.BaseRequestHandler):
 
-    # FUNCTION DEFINITIONS
-    def forward(self, s, axis):
+    # Setup
+    global motor_speed_var  # Default speed for variant forward/backward function
+    global s_old  # Variable used to store the previous state received from the gamepad (only needed for left analog stick)
+    global speed_x  # Current speed on left analog stick x axis
+    global speed_y  # Current speed on left analog stick y axis
+
+    motor_speed_var = 30
+    s_old = 0
+    speed_x = 0
+    speed_y = 0
+    
+    # Auxiliary function definitions
+
+    # Left analog stick moving function (forward/backward)
+    def move(self, s, axis):
         global speed_y
         global speed_x
         global s_old
-        percent = 5
+        percent = 5  # Minimum percentage to be reached before activating x axis
+
         self.leds_green()
-        #print('questo è s: ',s)
-        #print('x: ', speed_x, 'y: ', speed_y)
+
         if axis == 'ABS_Y':
             if s > 0:
                 reverse = True
@@ -64,15 +70,17 @@ class TCPHandler(socket.BaseRequestHandler):
                 motor.on(SpeedPercent(self.l),SpeedPercent(self.r))
         s_old = s
         
-        
-    def forward_var(self):
+    # Variant forward function (A button)
+    def forward(self):
         self.leds_green()
-        motor.on(SpeedPercent(motorSpeed_var),SpeedPercent(motorSpeed_var))
+        motor.on(SpeedPercent(motor_speed_var),SpeedPercent(motor_speed_var))
 
-    def backward_var(self):
+    # Variant backward function (B button)
+    def backward(self):
         self.leds_green()
-        motor.on(SpeedPercent(-motorSpeed_var),SpeedPercent(-motorSpeed_var))
+        motor.on(SpeedPercent(-motor_speed_var),SpeedPercent(-motor_speed_var))
 
+    # Stop function
     def stop(self):
         global speed_x
         global speed_y
@@ -81,84 +89,80 @@ class TCPHandler(socket.BaseRequestHandler):
         speed_y = 0
         motor.on(SpeedPercent(0),SpeedPercent(0))
         motor.off()  # Stop motors
-        #speedInfoThread = SpeedInfoThread()
-        #speedInfoThread.start()
 
-    '''
-    def turn(self, s):
-        global speed_y
-        self.leds_green()
-        if (s >= -129) and (s <= 385):
-            self.stop()
-        elif s == 32767:
-            speed_y = 100.0
-            print(speed_y)
-            motor.on(SpeedPercent(-motorSpeed_var),SpeedPercent(-motorSpeed_var))  # TODO
-        else:
-            speed_y = ((s)/32768.0)*100.0
-            motor.on(SpeedPercent(-motorSpeed_var),SpeedPercent(-motorSpeed_var)) # TODO
-            print(speed_y)
-    '''
-
-    def right_var(self):
+    # Variant right turn function (D-pad right button)
+    def right(self):
         self.leds_green()
         steer.on_for_rotations(-steeringValue, steeringSpeed, steeringDegrees)
 
-    def left_var(self):
+    # Variant left turn function (D-pad left button)
+    def left(self):
         self.leds_green()
         steer.on_for_rotations(steeringValue, steeringSpeed, steeringDegrees)
 
+    # Variant speed up function (D-pad up button)
     def speed_up(self):
-        global motorSpeed_var
-        if motorSpeed_var <= 90:
-            motorSpeed_var += 10
+        global motor_speed_var
+        if motor_speed_var <= 90:
+            motor_speed_var += 10
         else:
             print('Maximum motor speed reached.')
 
+    # Variant speed down function (D-pad down button)
     def speed_down(self):
-        global motorSpeed_var
-        if motorSpeed_var >= 20:
-            motorSpeed_var -= 10
+        global motor_speed_var
+        if motor_speed_var >= 20:
+            motor_speed_var -= 10
         else:
             print('Minimum motor speed reached.')
 
+    # Led function (green)
     def leds_green(self):
         leds.set_color('LEFT','GREEN')
         leds.set_color('RIGHT','GREEN')
 
+    # Led function (orange)
     def leds_orange(self):
         leds.set_color('LEFT','ORANGE')
         leds.set_color('RIGHT','ORANGE')
 
+    # Data sending (to log file) function
     def send_log(self):
-        info = {"MotoreA": motor_speedA, "MotoreD": motor_speedD}
-        with open("./log.json", "w") as f:
-            json.dump(info,f)
+        data = {'MotoreA': motor_speedA, 'MotoreD': motor_speedD}
+
+        with open('log.json', 'a+') as f:
+            f.write(str(data).replace("\'", "\"") + '\n')
+
+    # Log file read function
+    def read_log(self):
+        d = []
+        with open('log_prova.json') as f:
+            for line in f:
+                d.append(json.loads(line))
+            pprint(d)  # d is an array of Python dictionaries, each containing an instance of logged data
 
 
-
-
-    # TODO Understand what this function does and properly comment it
     def handle(self):
         global reverse
-        # self.request is the TCP socket connected to the client
-        self.data = self.request.recv(1024).strip()
-        #print("{} wrote:".format(self.client_address[0])) # specifica ip
+
+        self.data = self.request.recv(1024).strip()  # self.request is the TCP socket connected to the client
+    
         self.code, self.state = self.data.decode('utf-8').split(',')
 
-        #speed_y = 30  # Default motor speed (%)
-
         # CONTROLS
-        # A button: accelerate
-        # B button: reverse
-        # D-paself.stop()d right button: turn right
+        # A button: forward
+        # B button: backward
+        # D-pad right button: turn right
         # D-pad left button: turn left
         # D-pad up button: speed up (+10%)
         # D-pad down button: speed down (-10%)
+        # Left analog stick: move (forward/backward/rotate)
+        # Start button: emergency stop
+        # Select button: manually send collected data to log
 
         if (self.code == 'BTN_SOUTH') and (self.state == '1'):
             #print('A button pressed')
-            self.forward_var()
+            self.forward()
         if (self.code == 'BTN_SOUTH') and (self.state == '0'):
             #print('A button released')
             self.stop()
@@ -166,7 +170,7 @@ class TCPHandler(socket.BaseRequestHandler):
         if (self.code == 'BTN_EAST') and (self.state == '1'):
             #print('B button pressed')
             reverse = True
-            self.backward_var()
+            self.backward()
         if (self.code == 'BTN_EAST') and (self.state == '0'):
             #print('B button released')
             self.stop()
@@ -177,15 +181,16 @@ class TCPHandler(socket.BaseRequestHandler):
             self.stop()
 
         if (self.code == 'BTN_SELECT') and (self.state == '1'):
+            #print('SELECT button pressed')
             self.send_log()
 
         if (self.code == 'ABS_HAT0X') and (self.state == '1'):
             #print('D-pad right button pressed')
-            self.right_var()
+            self.right()
 
         if (self.code == 'ABS_HAT0X') and (self.state == '-1'):
             #print('D-pad left button pressed')
-            self.left_var()
+            self.left()
 
         if (self.code == 'ABS_HAT0Y') and (self.state == '-1'):
             #print('D-pad up button pressed')
@@ -198,25 +203,21 @@ class TCPHandler(socket.BaseRequestHandler):
         if (self.code == 'ABS_Y'):
             #print('Left analog stick moved up')
             #print(self.state)
-            self.forward(float(self.state), 'ABS_Y')
+            self.move(float(self.state), 'ABS_Y')
 
         if (self.code == 'ABS_X'):
             #print('Left analog stick moved right')
             #print(self.state)
-            self.forward(float(self.state), 'ABS_X')
-
-        # TODO Again, understand what this does and properly comment it
-        # just send back the same data, but upper-cased
-        #self.request.sendall(self.data.upper())
+            self.move(float(self.state), 'ABS_X')
 
 
 
-
-class UltrasonicThread (Thread):
+# Distance checking thread
+class UltrasonicThread(Thread):
     def __init__(self, nome):
         Thread.__init__(self)
         self.nome = nome
-        print("Thread Ultrasonic avviato")
+        print('Thread Ultrasonic avviato')
 
     def stop(self):
         #self.leds_orange()
@@ -245,7 +246,7 @@ class LogThread (Thread):
     def __init__(self, nome):
         Thread.__init__(self)
         self.nome = nome
-        print("Thread LogInfo avviato")
+        print('Thread LogInfo avviato')
     
     def run(self):
         global motor_info
@@ -258,13 +259,11 @@ class LogThread (Thread):
             motor_speedD.append(motor_infoD.speed)
 
             
-            
 
-
-class SpeedInfoThread (Thread):
+class InfoThread (Thread):
     def __init__(self):
         Thread.__init__(self)
-        print("Thread infoSpeed avviato")
+        print('Thread infoSpeed avviato')
     
     def run(self):
         global speed_x
@@ -272,11 +271,11 @@ class SpeedInfoThread (Thread):
 
         while True:
             sleep(0.5)
-            print("Speed_x: ",speed_x ," Speed_y: ",speed_y)
+            print('Speed_x: ',speed_x ,' Speed_y: ',speed_y)
 
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     
     # BRICK INITIALIZATION
     # Brick LEDs
@@ -301,7 +300,7 @@ if __name__ == "__main__":
     wall = False
     reverse = False
 
-    #Log info
+    # Log info
     motor_speedA = []
     motor_speedD = []
 
@@ -310,17 +309,17 @@ if __name__ == "__main__":
     host = '192.168.43.219'
     port = 12397
 
-    print("Inizializing server...")
+    print('Inizializing server...')
     server = socket.TCPServer((host, port), TCPHandler)  # Creates the server, binding to the specified host and port
 
-    #try:
-    print("Ready")
-    readySound = Sound()
-    readySound.tone(1000,1)
-    ultrasonicThread = UltrasonicThread("Thread Ultrasonic")
-    ultrasonicThread.start()
-    logThread = LogThread("Thread Log")
-    logThread.start()
-    server.serve_forever()  # Activates the server, which will keep running until the user stops the program with Ctrl+C (KeyboardInterrupt exception)
-    #except KeyboardInterrupt:
-    #    print('\n Stopped by user. Data is not being received anymore.')
+    try:
+        print('Ready')
+        readySound = Sound()
+        readySound.tone(1000,1)
+        ultrasonicThread = UltrasonicThread('Thread Ultrasonic')
+        ultrasonicThread.start()
+        logThread = LogThread('Thread Log')
+        logThread.start()
+        server.serve_forever()  # Activates the server, which will keep running until the user stops the program with Ctrl+C (KeyboardInterrupt exception)
+    except KeyboardInterrupt:
+        print('\n Stopped by user. Data is not being received anymore.')
