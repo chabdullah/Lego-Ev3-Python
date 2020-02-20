@@ -1,5 +1,4 @@
 import socket  # Data transmission
-from ev3dev.ev3 import *  # LEGO MINDSTORMS EV3 ev3dev Python library
 from inputs import get_gamepad  # Gamepad input
 from time import sleep
 
@@ -15,8 +14,8 @@ def send_data(host, port, data):
 host = '192.168.43.219'  # Server IP
 port = 12397  # Server port
 
-stick_values_X = []  # Array used for collecting input events from the left analog stick (X axis)
-stick_values_Y = []  # Array used for collecting input events from the left analog stick (Y axis)
+stick_values_X = []  # Array used for collecting input events from the left analog stick (x axis)
+stick_values_Y = []  # Array used for collecting input events from the left analog stick (y axis)
 
 sleep(0.05)  # Avoids lagging related problems
 
@@ -33,7 +32,7 @@ while True:  # Listens for gamepad input events and sends them to server
 
         commands_to_send = 5  # Number of commands to send to server (needs to be reduced for the left analog stick to avoid lagging)
 
-        # Left analog stick (X axis)
+        # Left analog stick (x axis)
         if (code == 'ABS_X'):
 
             stick_values_X.append(state)  # Appends the value of an input to the stick_values_X array
@@ -44,7 +43,7 @@ while True:  # Listens for gamepad input events and sends them to server
 
                 self.send_data(host, port, data)  # Actual sending of the data
         
-        # Left analog stick (Y axis)
+        # Left analog stick (y axis)
         elif (code == 'ABS_Y'):
 
             stick_values_Y.append(state)  # Appends the value of an input to the stick_values_Y array
