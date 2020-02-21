@@ -1,0 +1,14 @@
+{"MotoreA": 100, "MotoreD": 200}
+{"MotoreA": 100, "MotoreD": 200}
+{"MotoreA": 100, "MotoreD": 200}
+{"MotoreA": 100, "MotoreD": 200}
+{"MotoreA": 100, "MotoreD": 200}
+{"MotoreA": 100, "MotoreD": 200}
+{"MotoreA": 100, "MotoreD": 200}
+{"MotoreA": 100, "MotoreD": 200}
+{"MotoreA": 100, "MotoreD": 200}
+{"MotoreA": [100, 200, 300], "MotoreD": [400, 500, 600]}
+{"MotoreA": [100, 200, 300], "MotoreD": [400, 500, 600]}
+{"MotoreA": [100, 200, 300], "MotoreD": [400, 500, 600]}
+{"start": "2020-02-21 09:42:42.687006", "MotoreA": [100, 200, 300], "MotoreD": [400, 500, 600]}
+{"start": "2020-02-21 09:42:53.723457", "MotoreA": [100, 200, 300], "MotoreD": [400, 500, 600]}

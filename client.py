@@ -41,7 +41,7 @@ while True:  # Listens for gamepad input events and sends them to server
                 data = 'ABS_X' + ',' + str(stick_values_X[commands_to_send-1])  # ...then the last event is sent...
                 stick_values_X = []  # ...and the array is reset
 
-                self.send_data(host, port, data)  # Actual sending of the data
+                send_data(host, port, data)  # Actual sending of the data
         
         # Left analog stick (y axis)
         elif (code == 'ABS_Y'):
@@ -52,13 +52,13 @@ while True:  # Listens for gamepad input events and sends them to server
                 data = 'ABS_Y' + ',' + str(stick_values_Y[commands_to_send-1])  # ...then the last event is sent...
                 stick_values_Y = []  # ...and the array is reset
                 
-                self.send_data(host, port, data)  # Actual sending of the data
+                send_data(host, port, data)  # Actual sending of the data
         
         # Every other button
         else:
             data = str(code) + ',' + str(state)  # Data to be sent
             
-            self.send_data(host, port, data)  # Actual sending of the data
+            send_data(host, port, data)  # Actual sending of the data
 
 
         sleep(0.001)  # Avoids lagging related problems
