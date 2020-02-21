@@ -38,4 +38,3 @@ def read_log():
 
 
 read_log()
-print("Plotted")
