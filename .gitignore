@@ -1,6 +1,10 @@
 __pycache__/
 *.pyc
 venv/
+.vscode/
+.idea/
+plots/
 gamepad.py
 combo.py
 ssh.py
+log.json
