@@ -8,8 +8,6 @@ from pybricks.robotics import DriveBase
 
 # Initialization
 
-# TODO Visualizzare un'immagine (tipo logo) o del testo (ad es. nome e cognome studenti) all'avvio
-# TODO Similmente, fare un beep/suono di qualche tipo, sempre all'avvio (vedi esempi qui sotto)
 # brick.sound.beep()  # Play a beep sound
 # brick.sound.beep(1000, 500)  # Play another beep sound, this time with a higher pitch (1000 Hz) and longer duration (500 ms)
 
@@ -25,13 +23,10 @@ motorSpeed = 200  # Motor speed
 steeringSpeed = 200  # Steering speed (to be used when turning around)
 minDistance = 200  # Minimum distance (in mm) before the brick starts decelerating or stops to turn around
 maxSpeed = 400
-# TODO Altri parametri di default (bisogna vedere la libreria cosa ci permette di fare, ad es. set_run_settings)
 
 started = False  # Flag to be used as manual start/stop switch; default is False (brick does not move)
 
 ###############################################################################################
-
-# TODO Implementare il meccanismo di start/stop tramite la pressione di un pulsante con un'interruzione (ovvero il modo corretto per farlo)
 
 while True:
     brick.light(Color.YELLOW)  # Brick LED is yellow when ready (waiting for a button press)
@@ -44,13 +39,9 @@ while True:
         motorR.run(motorSpeed)
 
 
-    # TODO IMPORTANTE Al Basso piacerebbe temporizzare in maniera precisa il campionamento della distanza (e.g. ogni tot secondi, incluso il tempo di esecuzione delle istruzioni; da capire se c'è qualche funzione nella libreria o va fatto a mano)
     while started is True:
         # Check if there is enough space; if not, stop, turn 90 degrees, then start running again
         if ultrasonic.distance() < minDistance:
-            # TODO Inserire un suono quando trova un ostacolo (?), vedi sotto:
-            # brick.sound.file(SoundFile.CRYING, 50)
-            # TODO Bisognerebbe decelerare in maniera più graduale invece di fermarsi di colpo
             # Stop the motors:
             tempSpeed = motorSpeed
             for i in range(1,100):
@@ -61,12 +52,12 @@ while True:
             motorL.stop()              
             motorR.stop()
             # Turn 90 degrees until there is enough space to start running again:
-            # TODO Qui forse si potrebbe utilizzare la funzione drive(speed, steering) per girare il robot (vedi pag. 38)
             death = 4
+
             while ultrasonic.distance() < minDistance:
                 #motorL.set_run_settings(maxSpeed, 400)
                 #motorR.set_run_settings(maxSpeed, 400)
-                motorL.run_angle(steeringSpeed, -174, Stop.COAST, False)  # TODO Controllare che i motori siano nell'ordine giusto
+                motorL.run_angle(steeringSpeed, -174, Stop.COAST, False)
                 motorR.run_angle(steeringSpeed, +174)
                 death -= 1
                 if(death == 0):
@@ -83,6 +74,3 @@ while True:
             motorL.stop()
             motorR.stop()
             started = False
-
-
-# TODO (actually a silly idea) Se mai implementeremo una funzione di retromarcia, sarà mandatorio metterci il 'beep beep' (tipo quello dei camion in retromarcia, per capirsi)

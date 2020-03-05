@@ -33,7 +33,7 @@ while True:  # Listens for gamepad input events and sends them to server
         commands_to_send = 5  # Number of commands to send to server (needs to be reduced for the left analog stick to avoid lagging)
 
         # Left analog stick (x axis)
-        if (code == 'ABS_X'):
+        if code == 'ABS_X':
 
             stick_values_X.append(state)  # Appends the value of an input to the stick_values_X array
 
@@ -44,7 +44,7 @@ while True:  # Listens for gamepad input events and sends them to server
                 send_data(host, port, data)  # Actual sending of the data
         
         # Left analog stick (y axis)
-        elif (code == 'ABS_Y'):
+        elif code == 'ABS_Y':
 
             stick_values_Y.append(state)  # Appends the value of an input to the stick_values_Y array
 
@@ -59,6 +59,5 @@ while True:  # Listens for gamepad input events and sends them to server
             data = str(code) + ',' + str(state)  # Data to be sent
             
             send_data(host, port, data)  # Actual sending of the data
-
 
         sleep(0.001)  # Avoids lagging related problems
