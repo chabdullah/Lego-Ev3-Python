@@ -163,7 +163,7 @@ class TCPHandler(socket.BaseRequestHandler):
         leds.set_color('LEFT','ORANGE')
         leds.set_color('RIGHT','ORANGE')
 
-    def log(self):  # TODO Verificare
+    def log(self):
         global log_thread_started  # Flag to check if the log thread is started
 
         if log_thread_started == False:
@@ -172,15 +172,6 @@ class TCPHandler(socket.BaseRequestHandler):
             logThread.start()
         else:
             log_thread_started = False
-            print('Sending log to client...')
-            send_log()
-            print('Log sent successfully!')
-            print()
-
-    # Data sending (to log file) function
-    def send_log(self):
-        # TODO Definire la funzione di invio del log; dovrebbe essere automatico (non invocata dall'utente premendo X)
-        pass
 
     # Log file read function (here for debug purposes only)
     def read_log(self):
@@ -212,7 +203,6 @@ class TCPHandler(socket.BaseRequestHandler):
         # START button: emergency stop
         #
         # Y button: start/stop logging
-        # X button: send log to client
 
         if (self.code == 'BTN_WEST') and (self.state == '1'):
             # print('Y button pressed')
@@ -270,7 +260,7 @@ class UltrasonicThread(Thread):  # Distance checking thread
         Thread.__init__(self)
 
     def stop(self):
-        leds.set_color('LEFT','ORANGE')  # TODO Verificare
+        leds.set_color('LEFT','ORANGE')
         leds.set_color('RIGHT','ORANGE')
         motor.on(SpeedPercent(0),SpeedPercent(0))
         motor.off() 
@@ -323,7 +313,7 @@ class LogThread(Thread):
 
         print('Logging started...')
 
-        while log_thread_started:  # TODO Verificare (aggiunta temporizzazione)
+        while log_thread_started:
             t = time()
             motor_speed_l.append(motor_info_l.speed)
             motor_speed_r.append(motor_info_r.speed)
@@ -359,7 +349,7 @@ class LogThread(Thread):
             print()
 
 
-class InfoThread (Thread):  # TODO Verificare
+class InfoThread (Thread):
     def __init__(self):
         Thread.__init__(self)
         print('InfoThread started.')
